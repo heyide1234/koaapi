@@ -1,0 +1,155 @@
+const apiModel = require("../apiModel.js");
+//  await apiModel.find({ table: "salesOrderDetail", where: { OrderNumber: OrderNumber } });
+// apiModel.insert({ table: 'MaterialDemand', form: datas[i] });
+// apiModel.update({ table: "PurchaseOrder", id: row._id, form: fs });
+// apiModel.updateByWhere({ table: "salesOrder", where: { OrderNumber: tempsd.OrderNumber }, form: { processCode: "6" } });
+
+class yybTransaction {
+    static async yybTransaction(ctx) {
+        let data = null;
+        let status = true;
+        let returndata = false;
+        data = ctx.request.method.toLowerCase() == "get" ? ctx.request.query : ctx.request.body;
+        try {
+            returndata = await yyb(data.form, data.currentNum, data.operation, data.ids);
+        } catch (err) {
+            status = false;
+            returndata = `[MongoDB] ERROR: ${err}`;
+
+        } finally {
+            console.log('completed!');
+        }
+        ctx.body = {
+            status: status, data: returndata
+        };
+    }
+    static async YYBREFTransaction(ctx) {
+        let data = null;
+        let status = true;
+        let returndata = false;
+        data = ctx.request.method.toLowerCase() == "get" ? ctx.request.query : ctx.request.body;
+        try {
+            returndata = await YYBREF();
+        } catch (err) {
+            status = false;
+            returndata = `[MongoDB] ERROR: ${err}`;
+
+        } finally {
+            console.log('completed!');
+        }
+        ctx.body = {
+            status: status, data: returndata
+        };
+    }
+
+}
+async function yyb(form, currentNum, operation, ids) {
+    let nums = parseInt(form.Number) - parseInt(currentNum); //记录当前的差额数，用于实际库存增减
+    ///库存管理增减
+    let flag = await findstorck(form.MaterialNumber, nums);
+    if (flag) {
+        if (operation === "add") {
+            apiModel.insert({ table: 'YYB', form: form });
+            return true
+        } else {
+            apiModel.update({ table: "YYB", id: ids, form: form });
+            return true
+        }
+    }
+
+}
+async function findstorck(MaterialNumber, num) {
+    let temps = await apiModel.find({ table: "stock", where: { MaterialNumber: MaterialNumber } });
+    if (temps.length == 0) {
+        return false;
+    } else {
+        let nu = parseInt(num) + parseInt(temps[0].Number);
+        let synu = parseInt(num) + parseInt(temps[0].SYNumber);
+        if (nu < 0 || synu < 0) {
+            return false;
+        } else {
+            console.log(num);
+            apiModel.update({ table: "stock", id: temps[0]._id, form: { Number: nu, SYNumber: synu } });
+            return true;
+        }
+    }
+}
+async function YYBREF() { } {
+    await this.$https({
+        method: "post",
+        url: "/api/apiModel/deleteByWhere",
+        data: {
+            table: "YYB",
+            where: {},
+        },
+    })
+        .then((res) => {
+            console.log(res);
+        })
+        .catch(function (err) {
+            console.log(err);
+        });
+    let res = await apiModel.find({ table: "stock", where: {} });
+    for (let i = 0; i < res.length; i++) {
+        apiModel.insert({
+            table: 'YYB', form: {
+                MaterialNumber: res[i].MaterialNumber,
+                Number: res[i].Number,
+            }
+        });
+        this.$https({
+            //这里是你自己的请求方式、url和data参数
+            method: "post",
+            url: "/api/apiModel/insert",
+            data: {
+                table: "YYB",
+                form: {
+                    MaterialNumber: res[i].MaterialNumber,
+                    Number: res[i].Number,
+                },
+            },
+        })
+            .then((res) => {
+                console.log(res);
+            })
+            .catch(function (err) {
+                console.log(err);
+            });
+    }
+
+
+    this.$https({
+        method: "get",
+        url: "/api/apiModel/find",
+        params: {
+            table: "stock",
+            where: {},
+        },
+    })
+        .then((res) => {
+            for (let i = 0; i < res.length; i++) {
+                this.$https({
+                    //这里是你自己的请求方式、url和data参数
+                    method: "post",
+                    url: "/api/apiModel/insert",
+                    data: {
+                        table: "YYB",
+                        form: {
+                            MaterialNumber: res[i].MaterialNumber,
+                            Number: res[i].Number,
+                        },
+                    },
+                })
+                    .then((res) => {
+                        console.log(res);
+                    })
+                    .catch(function (err) {
+                        console.log(err);
+                    });
+            }
+        })
+        .catch((err) => {
+            console.log(err);
+        });
+}
+module.exports = yybTransaction;
