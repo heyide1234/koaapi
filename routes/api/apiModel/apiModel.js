@@ -39,6 +39,12 @@ const materialRequisitionTransaction = require("../../../lib/transaction/materia
 const functionPickingTransaction = require("../../../lib/transaction/functionPickingTransaction")
 const yybTransaction = require("../../../lib/transaction/yybTransaction")
 const stockTransaction = require("../../../lib/transaction/stockTransaction")
+const BDHGTransaction = require("../../../lib/transaction/BDHGTransaction")
+const ApprovalTransaction = require("../../../lib/transaction/ApprovalTransaction")
+const ManufacturingZZTransaction = require("../../../lib/transaction/ManufacturingZZTransaction")
+
+
+
 
 //订单流程及相关推送
 router.post("/transaction/salesOrderProcessTransaction", salesOrderTransaction.salesOrderProcessTransaction);
@@ -106,6 +112,17 @@ router.post("/transaction/yybTransaction", yybTransaction.yybTransaction);
 
 //根据库存同步盈余表
 router.post("/transaction/YYBREFTransaction", yybTransaction.YYBREFTransaction);
+
+//表单回滚
+router.post("/transaction/BDHGTransaction", BDHGTransaction.BDHGTransaction);
+// 采购回退
+router.post("/transaction/CGHGTransaction", BDHGTransaction.CGHGTransaction);
+
+router.post("/transaction/ApprovalTransaction", ApprovalTransaction.ApprovalTransaction);
+
+router.post("/transaction/ManufacturingZZTransaction", ManufacturingZZTransaction.ManufacturingZZTransaction);
+
+
 
 
 
